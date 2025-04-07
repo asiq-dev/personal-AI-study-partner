@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'accounts.apps.AccountsConfig',
+    'dsa_tutor.apps.DsaTutorConfig',
+    'todo.apps.TodoConfig',
+    'weather.apps.WeatherConfig',
 ]
 
 MIDDLEWARE = [
@@ -75,8 +79,13 @@ WSGI_APPLICATION = 'personal_study_partner.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'ai_study_partner',
+        'USER': 'postgres',
+        'PASSWORD': '12345',
+        'PORT': '5432',
+        'HOST': 'localhost',
+
     }
 }
 
