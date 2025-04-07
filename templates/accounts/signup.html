@@ -1,0 +1,23 @@
+<!-- templates/accounts/signup.html -->
+{% extends "base.html" %}
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4">
+  <div class="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Sign Up</h2>
+    <p class="text-center text-gray-600 mb-4">Create your account to get started.</p>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700">
+        Sign Up
+      </button>
+    </form>
+    <p class="mt-4 text-center text-sm text-gray-600">
+      Already have an account?
+      <a href="{% url 'login' %}" class="text-blue-600 hover:underline">Log in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
