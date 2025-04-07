@@ -13,14 +13,14 @@ from accounts.forms import CustomUserCreationForm, UserLoginForm
 class SignUpView(CreateView):
     form_class = CustomUserCreationForm  # Custom user creation form
     template_name = 'accounts/signup.html'
-    success_url = reverse_lazy('home')  # after signup redirect to chat home page
+    success_url = reverse_lazy('tutors_list')  # after signup redirect to chat home page
 
 
 # Login View
 class CustomLoginView(LoginView):
     form_class = UserLoginForm  # Use the default UserCreationForm for login
     template_name = 'accounts/login.html'
-    success_url = reverse_lazy('home')  # this requires overriding get_success_url()
+    success_url = reverse_lazy('tutors_list')  # this requires overriding get_success_url()
 
     def get_success_url(self):
         return self.success_url

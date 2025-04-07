@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Chatbot</title>
+</head>
+<body>
+    <h1>Create a New Chatbot</h1>
+    <form id="createChatbotForm">
+        {% csrf_token %}
+        <label for="chatbot_name">Chatbot Name:</label><br>
+        <input type="text" id="chatbot_name" name="chatbot_name" required><br><br>
+
+        <label for="openai_api_key">OpenAI API Key:</label><br>
+        <input type="text" id="openai_api_key" name="openai_api_key" required><br><br>
+
+        <label for="gpt_model">GPT Model:</label><br>
+        <input type="text" id="gpt_model" name="gpt_model" value="gpt-4o" required><br><br>
+
+        <button type="submit">Create Chatbot</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('createChatbotForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/tutor/create/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
+            });
+            const result = await response.json();
+            const responseDiv = document.getElementById('response');
+            if (result.success) {
+                responseDiv.innerHTML = 'Chatbot created successfully! Redirecting...';
+                setTimeout(() => window.location.href = '/', 2000);
+            } else {
+                responseDiv.innerHTML = `Error: ${result.error}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home - My Chatbots</title>
+</head>
+<body>
+    <h1>My Chatbots</h1>
+    <a href="/chatbot/create/">Create New Chatbot</a>
+    <ul>
+        {% for chatbot in chatbots %}
+            <li>
+                <a href="/tutor/{{ chatbot.id }}/">{{ chatbot.chatbot_name }}</a>
+                (Created: {{ chatbot.created_at|date:"Y-m-d H:i" }})
+            </li>
+        {% empty %}
+            <li>No chatbots found. Create one!</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

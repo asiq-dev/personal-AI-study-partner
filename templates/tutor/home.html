@@ -1,24 +1,52 @@
-<!-- templates/chat/home.html -->
-{% extends "base.html" %}
-{% block title %}Chat{% endblock %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat with {{ chatbot.chatbot_name }}</title>
+    <style>
+        #chatbox { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+        .user { color: blue; }
+        .assistant { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Chat with {{ chatbot.chatbot_name }}</h1>
+    <div id="chatbox">
+        {% for message in messages %}
+            <p class="{{ message.role }}">{{ message.role }}: {{ message.content }}</p>
+        {% endfor %}
+    </div>
+    <form id="chatForm">
+        {% csrf_token %}
+        <input type="hidden" name="chatbot_id" value="{{ chatbot.id }}">
+        <input type="text" id="message" name="message" placeholder="Type your message..." required>
+        <button type="submit">Send</button>
+    </form>
 
-{% block content %}
-<div class="min-h-screen flex flex-col">
-  <div class="bg-blue-600 text-white p-4 text-center text-xl font-bold">
-    Welcome {{ request.user.username }}
-  </div>
+    <script>
+        const chatbox = document.getElementById('chatbox');
+        chatbox.scrollTop = chatbox.scrollHeight;
 
-  <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100" id="chat-box">
-    <!-- Example messages -->
-    <div class="bg-white p-3 rounded shadow-md w-fit">👤 Hi, show me popular dishes</div>
-    <div class="bg-green-100 p-3 rounded shadow-md w-fit ml-auto">🤖 Sure! Here are the top dishes: ...</div>
-    <!-- You can dynamically add messages using JavaScript -->
-  </div>
+        document.getElementById('chatForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const message = formData.get('message');
+            chatbox.innerHTML += `<p class="user">User: ${message}</p>`;
 
-  <form method="post" class="flex p-4 border-t bg-white">
-    {% csrf_token %}
-    <input type="text" name="message" placeholder="Type your message..." class="flex-1 border border-gray-300 p-2 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700">Send</button>
-  </form>
-</div>
-{% endblock %}
+            const response = await fetch('/chatbot/chat/', {
+                method: 'POST',
+                body: JSON.stringify(Object.fromEntries(formData)),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            });
+            const result = await response.json();
+            if (result.reply) {
+                chatbox.innerHTML += `<p class="assistant">Assistant: ${result.reply}</p>`;
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+            this.reset();
+        });
+    </script>
+</body>
+</html>
