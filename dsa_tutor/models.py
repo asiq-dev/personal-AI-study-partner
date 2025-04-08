@@ -32,6 +32,9 @@ class ChatThread(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('chatbot', 'owner')
+
     def __str__(self):
         return f"Thread {self.thread_id} for {self.chatbot.chatbot_name}"
     

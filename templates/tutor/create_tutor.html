@@ -34,7 +34,7 @@
             const responseDiv = document.getElementById('response');
             if (result.success) {
                 responseDiv.innerHTML = 'Chatbot created successfully! Redirecting...';
-                setTimeout(() => window.location.href = '/', 2000);
+                setTimeout(() => window.location.href = "{% url 'tutors_list' %}");
             } else {
                 responseDiv.innerHTML = `Error: ${result.error}`;
             }

@@ -25,14 +25,14 @@
     <script>
         const chatbox = document.getElementById('chatbox');
         chatbox.scrollTop = chatbox.scrollHeight;
-
+    
         document.getElementById('chatForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData = new FormData(this);
             const message = formData.get('message');
             chatbox.innerHTML += `<p class="user">User: ${message}</p>`;
-
-            const response = await fetch('/chatbot/chat/', {
+    
+            const response = await fetch('/tutor/chat/', {
                 method: 'POST',
                 body: JSON.stringify(Object.fromEntries(formData)),
                 headers: {
@@ -44,6 +44,8 @@
             if (result.reply) {
                 chatbox.innerHTML += `<p class="assistant">Assistant: ${result.reply}</p>`;
                 chatbox.scrollTop = chatbox.scrollHeight;
+            } else {
+                chatbox.innerHTML += `<p class="error">Error: ${result.error}</p>`;
             }
             this.reset();
         });

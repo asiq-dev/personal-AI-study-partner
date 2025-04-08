@@ -1,3 +1,4 @@
+import time
 from django.shortcuts import render
 
 from django.http import JsonResponse
@@ -48,21 +49,26 @@ def chat(request):
 
         thread, _ = ChatThread.objects.get_or_create(chatbot=chatbot, owner=request.user)
         Message.objects.create(thread=thread, role="user", content=user_message)
-
+        
+        # Add the user message to the OpenAI thread
         client.beta.threads.messages.create(
             thread_id=thread.thread_id,
             role="user",
             content=user_message
         )
 
+        # Create and run the assistant
         run = client.beta.threads.runs.create(
             thread_id=thread.thread_id,
             assistant_id=openai_cred.assistant_id
         )
 
-        while run.status in ["queued", "in_progress"]:
+        # Wait for the run to complete
+        while True:
             run = client.beta.threads.runs.retrieve(thread_id=thread.thread_id, run_id=run.id)
-            if run.status == "requires_action":
+            if run.status == "completed":
+                break
+            elif run.status == "requires_action":
                 tool_calls = run.required_action.submit_tool_outputs.tool_calls
                 tool_outputs = []
                 for tool_call in tool_calls:
@@ -74,13 +80,20 @@ def chat(request):
                         result = fetch_google_sheet(args["spreadsheet_id"], args["range_name"])
                     else:
                         result = {"error": "Unknown function"}
-                    tool_outputs.append({"tool_call_id": tool_call.id, "output": json.dumps(result)})
+                    tool_outputs.append({
+                        "tool_call_id": tool_call.id,
+                        "output": json.dumps(result)
+                    })
                 client.beta.threads.runs.submit_tool_outputs(
                     thread_id=thread.thread_id,
                     run_id=run.id,
                     tool_outputs=tool_outputs
                 )
+            elif run.status in ["failed", "cancelled", "expired"]:
+                return JsonResponse({"error": f"Run failed with status: {run.status}"}, status=500)
+            time.sleep(0.5)  # Avoid overwhelming the API with requests
 
+        # Get the assistant’s response
         messages = client.beta.threads.messages.list(thread_id=thread.thread_id)
         assistant_reply = messages.data[0].content[0].text.value
         Message.objects.create(thread=thread, role="assistant", content=assistant_reply)
