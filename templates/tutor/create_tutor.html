@@ -1,44 +1,59 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Chatbot</title>
-</head>
-<body>
-    <h1>Create a New Chatbot</h1>
-    <form id="createChatbotForm">
-        {% csrf_token %}
-        <label for="chatbot_name">Chatbot Name:</label><br>
-        <input type="text" id="chatbot_name" name="chatbot_name" required><br><br>
+{% extends "base.html" %}
 
-        <label for="openai_api_key">OpenAI API Key:</label><br>
-        <input type="text" id="openai_api_key" name="openai_api_key" required><br><br>
+{% block title %}Create Chatbot{% endblock %}
 
-        <label for="gpt_model">GPT Model:</label><br>
-        <input type="text" id="gpt_model" name="gpt_model" value="gpt-4o" required><br><br>
-
-        <button type="submit">Create Chatbot</button>
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="w-[40%] space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Create a New Chatbot</h2>
+    </div>
+    <form id="createChatbotForm" class="mt-8 space-y-6">
+      {% csrf_token %}
+      <div class="rounded-md shadow-sm -space-y-px">
+        <div>
+          <label for="chatbot_name" class="sr-only">Chatbot Name</label>
+          <input id="chatbot_name" name="chatbot_name" type="text" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Chatbot Name">
+        </div>
+        <div>
+          <label for="openai_api_key" class="sr-only">OpenAI API Key</label>
+          <input id="openai_api_key" name="openai_api_key" type="text" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="OpenAI API Key">
+        </div>
+        <div>
+          <label for="gpt_model" class="sr-only">GPT Model</label>
+          <input id="gpt_model" name="gpt_model" type="text" value="gpt-4o" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="GPT Model">
+        </div>
+      </div>
+      <div>
+        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Create Chatbot
+        </button>
+      </div>
+      <div id="response" class="text-center text-sm text-gray-600"></div>
+      <div class="text-center mt-4">
+        <a href="{% url 'tutors_list' %}" class="text-indigo-600 hover:text-indigo-900">Show Tutor Chat List</a>
+      </div>
     </form>
+  </div>
+</div>
 
-    <div id="response"></div>
-
-    <script>
-        document.getElementById('createChatbotForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const response = await fetch('/tutor/create/', {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
-            });
-            const result = await response.json();
-            const responseDiv = document.getElementById('response');
-            if (result.success) {
-                responseDiv.innerHTML = 'Chatbot created successfully! Redirecting...';
-                setTimeout(() => window.location.href = "{% url 'tutors_list' %}");
-            } else {
-                responseDiv.innerHTML = `Error: ${result.error}`;
-            }
-        });
-    </script>
-</body>
-</html>
+<script>
+  document.getElementById('createChatbotForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const response = await fetch('/tutor/create/', {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
+    });
+    const result = await response.json();
+    const responseDiv = document.getElementById('response');
+    if (result.success) {
+      responseDiv.innerHTML = 'Chatbot created successfully! Redirecting...';
+      setTimeout(() => window.location.href = "{% url 'tutors_list' %}");
+    } else {
+      responseDiv.innerHTML = `Error: ${result.error}`;
+    }
+  });
+</script>
+{% endblock %}

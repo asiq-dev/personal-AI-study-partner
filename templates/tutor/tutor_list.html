@@ -1,20 +1,31 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Home - My Chatbots</title>
-</head>
-<body>
-    <h1>My Chatbots</h1>
-    <a href="/tutor/create/">Create New Chatbot</a>
-    <ul>
-        {% for chatbot in chatbots %}
-            <li>
-                <a href="/tutor/{{ chatbot.id }}/">{{ chatbot.chatbot_name }}</a>
-                (Created: {{ chatbot.created_at|date:"Y-m-d H:i" }})
-            </li>
-        {% empty %}
-            <li>No chatbots found. Create one!</li>
-        {% endfor %}
+{% extends "base.html" %}
+
+{% block title %}Home - My AI Tutors{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="w-[60%] space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Hi, {{ request.user }}, Your Tutors</h2>
+    </div>
+    <div class="text-center mt-4">
+      <a href="/tutor/create/" class="text-indigo-600 hover:text-indigo-900">Create New Tutor</a>
+    </div>
+    <ul class="space-y-4">
+      {% for chatbot in chatbots %}
+        <li class="border border-gray-300 p-4 rounded-md shadow-sm bg-white">
+          <a href="/tutor/{{ chatbot.id }}/" class="text-indigo-600 hover:text-indigo-900">{{ chatbot.chatbot_name }}</a>
+          <p class="text-gray-600">Created: {{ chatbot.created_at|date:"Y-m-d H:i" }}</p>
+        </li>
+      {% empty %}
+        <li class="text-gray-600">No tutors found. Create one!</li>
+      {% endfor %}
     </ul>
-</body>
-</html>
+
+    <form method="POST" action="{% url 'logout' %}" class="mt-6 text-center:">
+        {% csrf_token %}
+        <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Logout</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,54 +1,82 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Chat with {{ chatbot.chatbot_name }}</title>
-    <style>
-        #chatbox { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
-        .user { color: blue; }
-        .assistant { color: green; }
-    </style>
-</head>
-<body>
-    <h1>Chat with {{ chatbot.chatbot_name }}</h1>
-    <div id="chatbox">
-        {% for message in messages %}
-            <p class="{{ message.role }}">{{ message.role }}: {{ message.content }}</p>
-        {% endfor %}
+{% extends "base.html" %}
+
+{% block title %}Chat with {{ chatbot.chatbot_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-15 px-4 sm:px-6 lg:px-2">
+  <div class="w-[60%] space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Chat with {{ chatbot.chatbot_name }}</h2>
     </div>
-    <form id="chatForm">
-        {% csrf_token %}
-        <input type="hidden" name="chatbot_id" value="{{ chatbot.id }}">
-        <input type="text" id="message" name="message" placeholder="Type your message..." required>
-        <button type="submit">Send</button>
+    <div id="chatbox" class="h-96 overflow-y-scroll border border-gray-300 p-4 rounded-md shadow-sm bg-white">
+      {% for message in messages %}
+      <div class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
+      <p class="{% if message.role == 'user' %}text-blue-600{% else %}text-green-600{% endif %}">
+        {{ message.role }}: {{ message.content }}
+      </p>
+    </div>
+      {% endfor %}
+    </div>
+    <form id="chatForm" class="mt-4 space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="chatbot_id" value="{{ chatbot.id }}">
+      <div class="flex">
+        <input type="text" id="message" name="message" placeholder="Type your message..." required class="flex-grow px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+        <button type="submit" class="px-4 py-2 border border-transparent rounded-r-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Send
+        </button>
+      </div>
     </form>
 
-    <script>
-        const chatbox = document.getElementById('chatbox');
+    <div class="text-center mt-4">
+        <a href="{% url 'tutors_list' %}" class="text-indigo-600 hover:text-indigo-900">Show Tutors List</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+    const chatbox = document.getElementById('chatbox');
+    chatbox.scrollTop = chatbox.scrollHeight;
+  
+    document.getElementById('chatForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const message = formData.get('message');
+  
+      // Create a new div for the user message
+      const userMessageDiv = document.createElement('div');
+      userMessageDiv.classList.add('flex', 'justify-end');
+      userMessageDiv.innerHTML = `<p class="text-blue-600">User: ${message}</p>`;
+      chatbox.appendChild(userMessageDiv);
+      chatbox.scrollTop = chatbox.scrollHeight;
+      document.getElementById('message').value = '';
+  
+      const response = await fetch('/tutor/chat/', {
+        method: 'POST',
+        body: JSON.stringify(Object.fromEntries(formData)),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+      });
+      const result = await response.json();
+      if (result.reply) {
+        // Create a new div for the assistant message
+        const assistantMessageDiv = document.createElement('div');
+        assistantMessageDiv.classList.add('flex', 'justify-start');
+        assistantMessageDiv.innerHTML = `<p class="text-green-600">Assistant: ${result.reply}</p>`;
+        chatbox.appendChild(assistantMessageDiv);
         chatbox.scrollTop = chatbox.scrollHeight;
-    
-        document.getElementById('chatForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const message = formData.get('message');
-            chatbox.innerHTML += `<p class="user">User: ${message}</p>`;
-    
-            const response = await fetch('/tutor/chat/', {
-                method: 'POST',
-                body: JSON.stringify(Object.fromEntries(formData)),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                }
-            });
-            const result = await response.json();
-            if (result.reply) {
-                chatbox.innerHTML += `<p class="assistant">Assistant: ${result.reply}</p>`;
-                chatbox.scrollTop = chatbox.scrollHeight;
-            } else {
-                chatbox.innerHTML += `<p class="error">Error: ${result.error}</p>`;
-            }
-            this.reset();
-        });
-    </script>
-</body>
-</html>
+      } else {
+        // Create a new div for the error message
+        const errorMessageDiv = document.createElement('div');
+        errorMessageDiv.classList.add('flex', 'justify-start');
+        errorMessageDiv.innerHTML = `<p class="text-red-600">Error: ${result.error}</p>`;
+        chatbox.appendChild(errorMessageDiv);
+        chatbox.scrollTop = chatbox.scrollHeight;
+      }
+    });
+  </script>
+  
+{% endblock %}
