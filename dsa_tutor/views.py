@@ -4,8 +4,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.shortcuts import render
 
-from dsa_tutor.utils import create_chatbot_assistant, generate_random_string
-from personal_study_partner import settings
+from dsa_tutor.utils import create_chatbot_assistant, fetch_google_sheet, generate_random_string, get_location_from_ip, get_weather
+
 from .models import ChatThread, Chatbot, OpenaiCredential, Message  # Assuming these models exist
 from django.contrib.auth.decorators import login_required
 
@@ -15,10 +15,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from openai import OpenAI
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import requests
-from datetime import datetime, timedelta
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
 import json
 
 
@@ -32,9 +28,7 @@ def list_tutors(request):
     chatbots = Chatbot.objects.filter(owner=request.user)
     return render(request, 'tutor/tutor_list.html', {'chatbots': chatbots})
 
-WEATHER_API_KEY = settings.WEATHER_API_KEY
-GOOGLE_CREDENTIALS_FILE = "credentials/personal-ai-study-partner-66175870c255.json"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
 
 @csrf_exempt
 @login_required
@@ -88,7 +82,7 @@ def chat(request):
                         result = get_weather(lat, lon)
 
                     elif func_name == "fetch_google_sheet":
-                        result = fetch_google_sheet(args["spreadsheet_id"], args["range_name"])
+                        result = fetch_google_sheet(args["spreadsheet_id"])
                     else:
                         result = {"error": "Unknown function"}
                     tool_outputs.append({
@@ -115,60 +109,6 @@ def chat(request):
 
         return JsonResponse({"reply": assistant_reply})
     return JsonResponse({"error": "Invalid request"}, status=400)
-
-
-#for dynamic weather data of user current location
-def get_location_from_ip():
-    try:
-        response = requests.get("https://ipinfo.io")
-        data = response.json()
-        loc = data.get("loc")  # returns something like '37.7749,-122.4194'
-        if loc:
-            lat, lon = map(float, loc.split(','))
-            return lat, lon
-    except Exception as e:
-        print("🌍 Failed to fetch location:", e)
-    return 0.0, 0.0  # fallback
-
-
-# Tool Functions
-def get_weather(latitude, longitude):
-    
-    weather_data = {}
-    # OpenWeather API URL for current weather
-    weather_url = (
-        f"https://api.openweathermap.org/data/2.5/weather"
-        f"?lat={latitude}&lon={longitude}&appid={WEATHER_API_KEY}&units=metric"
-    )
-    print(f"making api call to {weather_url}")
-
-    response = requests.get(weather_url).json()
-
-    # Check if API returns an error message
-    if response.get("cod") != 200:
-        print(f"OpenWeather API error: {response.get('message')}")
-        return {"error": "Failed to fetch weather data"}
-    
-    # Extract and format the weather information
-    weather_data = {
-        "temperature": response["main"]["temp"],
-        "weather": response["weather"][0]["description"],
-        "humidity": response["main"]["humidity"],
-        "wind_speed": response["wind"]["speed"]
-    }    
-    return weather_data
-
-
-
-def fetch_google_sheet(spreadsheet_id, range_name):
-    creds = Credentials.from_service_account_file(GOOGLE_CREDENTIALS_FILE, scopes=SCOPES)
-    service = build("sheets", "v4", credentials=creds)
-    sheet = service.spreadsheets()
-    result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-    values = result.get("values", [])
-    return {"data": values} if values else {"message": "No data found"}
-
-
 
 
 @login_required
