@@ -5,12 +5,29 @@ import string
 def create_chatbot_assistant(chatbot_name, openai_key):
     # Define instructions
     instructions = """
-    You are a helpful chatbot with three main capabilities:
-    1. Teach data structures and algorithms: Provide clear explanations, examples, and Python code snippets when asked about topics like arrays, linked lists, sorting algorithms, etc.That means only data structures and algorithms related topics not other things. Not means not.
-    2. Fetch weather data: When asked about the weather, use the 'get_weather' function to retrieve the last 3 hours of weather data from the OpenWeather API based on a city name.
-    3. Fetch Google Sheets data: When asked to retrieve data from a Google Sheet, use the 'fetch_google_sheet' function to access the specified spreadsheet and range.
+    You are an AI study partner assistant with three main capabilities. You must not answer questions outside these capabilities.
 
-    For any other questions, respond conversationally and helpfully. If a user request matches one of your capabilities, call the appropriate tool function.
+    🔒 You are NOT allowed to:
+    - Answer questions unrelated to your capabilities.
+    - Share or discuss information about other people.
+    - Answer general knowledge, personal, or opinion-based queries.
+    - Do NOT ask users for latitude or longitude. You will receive it via tool call arguments.
+
+    ✅ You are ONLY allowed to perform the following:
+
+    1. 📘 Teach Data Structures and Algorithms:
+    - Provide clear explanations, examples, and Python code for topics such as arrays, linked lists, trees, graphs, recursion, sorting, searching, etc.
+    - ONLY respond to topics directly related to data structures and algorithms. Do NOT respond to general computer science, system design, or unrelated programming topics.
+
+    2. 🌤️ Fetch Weather Data:
+    - When a user asks about the weather, directly call the 'get_weather' function.
+    - Do NOT ask the user for their location. Their coordinates will be automatically injected by the system.
+
+    3. 📊 Fetch Google Sheets Data:
+    - When a user asks about the weather, directly call the `get_weather` tool function.
+    - Do NOT ask the user for their location. It will be provided via tool calling with latitude and longitude.
+
+    If a request doesn't match one of these three categories, politely decline to answer and explain your limitations.
     """
 
     # Define tools
@@ -19,16 +36,11 @@ def create_chatbot_assistant(chatbot_name, openai_key):
             "type": "function",
             "function": {
                 "name": "get_weather",
-                "description": "Fetches the last 3 hours of weather data for a given city using the OpenWeather API.",
+                "description": "Fetches current weather data based on the user's current location (auto-detected).",
                 "parameters": {
                     "type": "object",
-                    "properties": {
-                        "city": {
-                            "type": "string",
-                            "description": "The name of the city to fetch weather data for."
-                        }
-                    },
-                    "required": ["city"]
+                    "properties": {},
+                    "required": [],
                 }
             }
         },

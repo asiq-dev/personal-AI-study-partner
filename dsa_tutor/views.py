@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 
 from dsa_tutor.utils import create_chatbot_assistant, generate_random_string
+from personal_study_partner import settings
 from .models import ChatThread, Chatbot, OpenaiCredential, Message  # Assuming these models exist
 from django.contrib.auth.decorators import login_required
 
@@ -22,8 +23,8 @@ import json
 
 
 # Create your views here.
-class HomeView(LoginRequiredMixin, TemplateView):
-    template_name = 'tutor/home.html'
+# class HomeView(LoginRequiredMixin, TemplateView):
+#     template_name = 'tutor/home.html'
 
 
 @login_required
@@ -31,8 +32,8 @@ def list_tutors(request):
     chatbots = Chatbot.objects.filter(owner=request.user)
     return render(request, 'tutor/tutor_list.html', {'chatbots': chatbots})
 
-WEATHER_API_KEY = "your-openweather-api-key"
-GOOGLE_CREDENTIALS_FILE = "path/to/your/credentials.json"
+WEATHER_API_KEY = settings.WEATHER_API_KEY
+GOOGLE_CREDENTIALS_FILE = "credentials/personal-ai-study-partner-66175870c255.json"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 @csrf_exempt
@@ -58,6 +59,7 @@ def chat(request):
         )
 
         # Create and run the assistant
+        print("🧠 Starting assistant run...")
         run = client.beta.threads.runs.create(
             thread_id=thread.thread_id,
             assistant_id=openai_cred.assistant_id
@@ -66,16 +68,25 @@ def chat(request):
         # Wait for the run to complete
         while True:
             run = client.beta.threads.runs.retrieve(thread_id=thread.thread_id, run_id=run.id)
+            print(f"⏳ Run status: {run.status}")
             if run.status == "completed":
+                print("✅ Run completed.")
                 break
             elif run.status == "requires_action":
+                print("🔧 Assistant requested tool actions...")
                 tool_calls = run.required_action.submit_tool_outputs.tool_calls
                 tool_outputs = []
                 for tool_call in tool_calls:
                     func_name = tool_call.function.name
                     args = json.loads(tool_call.function.arguments)
+                    print(f"📦 Tool call: {func_name} with args {args}")
+
                     if func_name == "get_weather":
-                        result = get_weather(args["city"])
+                        # Get location from IP
+                        lat, lon = get_location_from_ip()
+                        print(f"Using location: Latitude={lat}, Longitude={lon}")
+                        result = get_weather(lat, lon)
+
                     elif func_name == "fetch_google_sheet":
                         result = fetch_google_sheet(args["spreadsheet_id"], args["range_name"])
                     else:
@@ -89,8 +100,12 @@ def chat(request):
                     run_id=run.id,
                     tool_outputs=tool_outputs
                 )
+                print("🔁 Submitted tool outputs. Waiting for next step...")
+
             elif run.status in ["failed", "cancelled", "expired"]:
+                print(f"❌ Run ended with error: {run.status}")
                 return JsonResponse({"error": f"Run failed with status: {run.status}"}, status=500)
+
             time.sleep(0.5)  # Avoid overwhelming the API with requests
 
         # Get the assistant’s response
@@ -102,19 +117,45 @@ def chat(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
+#for dynamic weather data of user current location
+def get_location_from_ip():
+    try:
+        response = requests.get("https://ipinfo.io")
+        data = response.json()
+        loc = data.get("loc")  # returns something like '37.7749,-122.4194'
+        if loc:
+            lat, lon = map(float, loc.split(','))
+            return lat, lon
+    except Exception as e:
+        print("🌍 Failed to fetch location:", e)
+    return 0.0, 0.0  # fallback
+
+
 # Tool Functions
-def get_weather(city):
-    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&appid={WEATHER_API_KEY}"
-    geo_response = requests.get(geo_url).json()
-    if not geo_response:
-        return {"error": "City not found"}
-    lat, lon = geo_response[0]["lat"], geo_response[0]["lon"]
+def get_weather(latitude, longitude):
+    
     weather_data = {}
-    for i in range(3, 0, -1):
-        past_time = int((datetime.now() - timedelta(hours=i)).timestamp())
-        weather_url = f"https://api.openweathermap.org/data/2.5/onecall/timemachine?lat={lat}&lon={lon}&dt={past_time}&appid={WEATHER_API_KEY}"
-        response = requests.get(weather_url).json()
-        weather_data[f"{i} hour(s) ago"] = response.get("current", {}).get("weather", [])
+    # OpenWeather API URL for current weather
+    weather_url = (
+        f"https://api.openweathermap.org/data/2.5/weather"
+        f"?lat={latitude}&lon={longitude}&appid={WEATHER_API_KEY}&units=metric"
+    )
+    print(f"making api call to {weather_url}")
+
+    response = requests.get(weather_url).json()
+
+    # Check if API returns an error message
+    if response.get("cod") != 200:
+        print(f"OpenWeather API error: {response.get('message')}")
+        return {"error": "Failed to fetch weather data"}
+    
+    # Extract and format the weather information
+    weather_data = {
+        "temperature": response["main"]["temp"],
+        "weather": response["weather"][0]["description"],
+        "humidity": response["main"]["humidity"],
+        "wind_speed": response["wind"]["speed"]
+    }    
     return weather_data
 
 
@@ -177,4 +218,4 @@ def chat_view(request, tutor_id):
         thread.thread_id = thread_obj.id
         thread.save()
     messages = Message.objects.filter(thread=thread).order_by('created_at')
-    return render(request, 'tutor/home.html', {'chatbot': chatbot, 'thread': thread, 'messages': messages})
+    return render(request, 'tutor/chat_view.html', {'chatbot': chatbot, 'thread': thread, 'messages': messages})

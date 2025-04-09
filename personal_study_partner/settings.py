@@ -139,3 +139,10 @@ LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'  # Custom user model
+
+
+# import from local_settings
+try:
+    from .local_settings import WEATHER_API_KEY
+except ImportError:
+    WEATHER_API_KEY = None  # Optional: Handle missing credentials gracefully

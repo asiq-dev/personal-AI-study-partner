@@ -1,0 +1,7 @@
+venv/
+credentials/personal-ai-study-partner-66175870c255.json
+db.sqlite3
+__pycache__/
+*.pyc
+*.pyo
+local_settings.py
