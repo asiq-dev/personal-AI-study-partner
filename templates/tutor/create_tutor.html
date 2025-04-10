@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Create Chatbot{% endblock %}
+{% block title %}Create Tutor{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
   <div class="w-[40%] space-y-8">
     <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Create a New Chatbot</h2>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Create a New Tutor</h2>
     </div>
     <form id="createChatbotForm" class="mt-8 space-y-6">
       {% csrf_token %}
       <div class="rounded-md shadow-sm -space-y-px">
         <div>
-          <label for="chatbot_name" class="sr-only">Chatbot Name</label>
-          <input id="chatbot_name" name="chatbot_name" type="text" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Chatbot Name">
+          <label for="chatbot_name" class="sr-only">Tutor Name</label>
+          <input id="chatbot_name" name="chatbot_name" type="text" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Tutor Name">
         </div>
         <div>
           <label for="openai_api_key" class="sr-only">OpenAI API Key</label>
@@ -21,12 +21,17 @@
         </div>
         <div>
           <label for="gpt_model" class="sr-only">GPT Model</label>
-          <input id="gpt_model" name="gpt_model" type="text" value="gpt-4o" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="GPT Model">
+          <select id="gpt_model" name="gpt_model" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm">
+            <option value="" selected disabled>Select Model</option>
+            {% for model in available_models %}
+              <option value="{{ model }}">{{ model }}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
       <div>
         <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          Create Chatbot
+          Create Tutor
         </button>
       </div>
       <div id="response" class="text-center text-sm text-gray-600"></div>
@@ -50,7 +55,7 @@
     const responseDiv = document.getElementById('response');
     if (result.success) {
       responseDiv.innerHTML = 'Chatbot created successfully! Redirecting...';
-      setTimeout(() => window.location.href = "{% url 'tutors_list' %}");
+      setTimeout(() => window.location.href = "{% url 'tutors_list' %}", 1000);
     } else {
       responseDiv.innerHTML = `Error: ${result.error}`;
     }

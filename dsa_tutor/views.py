@@ -4,12 +4,17 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.shortcuts import render
 
-from dsa_tutor.utils import create_chatbot_assistant, fetch_google_sheet, generate_random_string, get_location_from_ip, get_weather
+from dsa_tutor.utils import (
+    create_chatbot_assistant, fetch_google_sheet, generate_random_string, get_location_from_ip,
+    get_weather, reset_password, verify_email_exists
+)
 
 from .models import ChatThread, Chatbot, OpenaiCredential, Message  # Assuming these models exist
 from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from openai import OpenAI
@@ -25,7 +30,7 @@ import json
 
 @login_required
 def list_tutors(request):
-    chatbots = Chatbot.objects.filter(owner=request.user)
+    chatbots = Chatbot.objects.filter(owner=request.user).order_by('-created_at')
     return render(request, 'tutor/tutor_list.html', {'chatbots': chatbots})
 
 
@@ -83,6 +88,13 @@ def chat(request):
 
                     elif func_name == "fetch_google_sheet":
                         result = fetch_google_sheet(args["spreadsheet_id"])
+                    
+                    elif func_name == "verify_email_exists":
+                        result = verify_email_exists(args["email"], request.user.email)
+
+                    elif func_name == "reset_password":
+                        result = reset_password(args["email"], args["new_password"])
+
                     else:
                         result = {"error": "Unknown function"}
                     tool_outputs.append({
@@ -111,17 +123,40 @@ def chat(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
-@login_required
-def create_tutor(request):
-    if request.method == "POST":
+@method_decorator(login_required, name='dispatch')
+class CreateTutorView(View):
+    template_name = "tutor/create_tutor.html"
+
+    # Define available GPT models (you can update this list as needed)
+    AVAILABLE_OPEN_AI_MODELS = [
+            'gpt-4o',
+            'gpt-4-turbo',
+            'gpt-4',
+            'gpt-3.5-turbo',
+        ]
+
+    def get(self, request):
+        context = {
+            'owner': request.user,
+            'available_models': self.AVAILABLE_OPEN_AI_MODELS
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
         try:
             # Extract form data
             chatbot_name = request.POST.get("chatbot_name").strip()
             openai_api_key = request.POST.get("openai_api_key").strip()
             gpt_model = request.POST.get("gpt_model").strip()
 
+            # Validate gpt_model
+            if gpt_model not in self.AVAILABLE_OPEN_AI_MODELS:
+                return JsonResponse({"success": False, "error": "Invalid GPT model selected"})
+
             # Step 1: Create the assistant
-            assistant_id = create_chatbot_assistant(chatbot_name, openai_api_key)
+            assistant_id = create_chatbot_assistant(chatbot_name, openai_api_key, gpt_model)
+            if not assistant_id:
+                return JsonResponse({"success": False, "error": "Failed to create assistant"})
 
             # Step 2: Create a unique ID and save the chatbot
             unique_id = generate_random_string(10)  # Reuse your function
@@ -143,8 +178,6 @@ def create_tutor(request):
             return JsonResponse({"success": True, "chatbot_id": new_chatbot.id})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
-    else:
-        return render(request, "tutor/create_tutor.html", {"owner": request.user})
     
 
 @login_required

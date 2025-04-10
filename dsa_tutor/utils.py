@@ -4,6 +4,8 @@ import string
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 import requests
+from accounts.models import CustomUser
+from dsa_tutor.instructions import instruction
 from personal_study_partner import settings
 
 
@@ -14,32 +16,9 @@ WEATHER_API_KEY = settings.WEATHER_API_KEY
 
 
 ## Function to create a chatbot assistant with specific capabilities
-def create_chatbot_assistant(chatbot_name, openai_key):
+def create_chatbot_assistant(chatbot_name, openai_key, gpt_model):
     # Define instructions
-    instructions = """
-    You are an AI study partner assistant with three main capabilities. You must not answer questions outside these capabilities.
-
-    🔒 You are NOT allowed to:
-    - Answer questions unrelated to your capabilities.
-    - Share or discuss information about other people.
-    - Answer general knowledge, personal, or opinion-based queries.
-    - Do NOT ask users for latitude or longitude. You will receive it via tool call arguments.
-
-    ✅ You are ONLY allowed to perform the following:
-
-    1. 📘 Teach Data Structures and Algorithms:
-    - Provide clear explanations, examples, and Python code for topics such as arrays, linked lists, trees, graphs, recursion, sorting, searching, etc.
-    - ONLY respond to topics directly related to data structures and algorithms. Do NOT respond to general computer science, system design, or unrelated programming topics.
-
-    2. 🌤️ Fetch Weather Data:
-    - When a user asks about the weather, directly call the 'get_weather' function.
-    - Do NOT ask the user for their location. Their coordinates will be automatically injected by the system.
-
-    3. 📊 Fetch Google Sheets Data:
-    Show to-do list: When asked to show the data from sheet like for todo list, use the 'fetch_google_sheet' function to retrieve and display the entire list from a Google Sheet with columns 'no', 'name', and 'status'. Use the spreadsheet ID. If user doesn't provide it, ask them to provide the spreadsheet ID.
-
-    If a request doesn't match one of these three categories, politely decline to answer and explain your limitations.
-    """
+    instructions = instruction()
 
     # Define tools
     tools_list = [
@@ -55,6 +34,7 @@ def create_chatbot_assistant(chatbot_name, openai_key):
                 }
             }
         },
+
         {
             "type": "function",
             "function": {
@@ -71,7 +51,48 @@ def create_chatbot_assistant(chatbot_name, openai_key):
                     "required": ["spreadsheet_id",]
                 }
             }
+        },
+
+        {
+            "type": "function",
+            "function": {
+                "name": "verify_email_exists",
+                "description": "Verifies if the email exists in the system and is it requested user's email.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "email": {
+                            "type": "string",
+                            "description": "The email to verify."
+                        }
+                    },
+                    "required": ["email"],
+                }
+            }
+        },
+
+        {
+            "type": "function",
+            "function": {
+                "name": "reset_password",
+                "description": "Resets the password for the requested user.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "email": {
+                            "type": "string",
+                            "description": "the email of the user given and whose password is to be reset."
+                        },
+                        "new_password": {
+                            "type": "string",
+                            "description": "The new password for the user."
+                        },
+                    },
+                    "required": ["email", "new_password"],
+                }
+            }
         }
+
     ]
 
     # Create the assistant
@@ -81,7 +102,7 @@ def create_chatbot_assistant(chatbot_name, openai_key):
             name=chatbot_name,
             description="A chatbot for teaching DS/Algo, fetching weather, and Google Sheets data.",
             instructions=instructions,
-            model="gpt-4o",
+            model=gpt_model,
             tools=tools_list,
         )
         return my_assistant.id
@@ -90,13 +111,8 @@ def create_chatbot_assistant(chatbot_name, openai_key):
         raise
 
 
-def generate_random_string(length):
-    characters = string.ascii_letters + string.digits
-    random_string = "".join(random.choice(characters) for _ in range(length))
-    return random_string
 
-
-## some functions for weather and google sheets data fetching
+## some functions for weather and google sheets data fetching helper functions
 
 #for dynamic weather data of user current location
 def get_location_from_ip():
@@ -110,6 +126,12 @@ def get_location_from_ip():
     except Exception as e:
         print("🌍 Failed to fetch location:", e)
     return 0.0, 0.0  # fallback
+
+# for generating random string for unique id of chatbot
+def generate_random_string(length):
+    characters = string.ascii_letters + string.digits
+    random_string = "".join(random.choice(characters) for _ in range(length))
+    return random_string
 
 
 ## Tool Functions
@@ -171,3 +193,23 @@ def fetch_google_sheet(spreadsheet_id):
         formatted_list += f"- #{no}: {name} (Status: {status})\n"
 
     return {"data": formatted_list.strip()} if todo_list else {"message": "No to-do items found after the header."}
+
+
+def verify_email_exists(email, current_user_email):
+    #check your user database to see if the email exists and email is of the user who is requesting it
+    if current_user_email != email:
+        return {"error": "You are not authorized to verify this email."}
+
+    result = CustomUser.objects.filter(email=email).exists()
+    if not result:
+        return {"error": "Email does not exist."}
+    return {"message": f"Email {email} exists in the system."}
+
+
+def reset_password(email, new_password):
+    # Here you would typically call your user management system to reset the password
+    user = CustomUser.objects.filter(email=email).first()
+    user.set_password(new_password)
+    user.save()
+
+    return {"message": f"Password for {email} has been reset successfully."}
