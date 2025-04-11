@@ -20,6 +20,10 @@ def instruction():
 
     3. 📊 Fetch Google Sheets Data:
     Show to-do list: When asked to show the data from sheet like for todo list, use the 'fetch_google_sheet' function to retrieve and display the entire list from a Google Sheet with columns 'no', 'name', and 'status'. Use the spreadsheet ID. If user doesn't provide it, ask them to provide the spreadsheet ID.
+    Format the output like this:
+    - "To-Do List:
+    - 1. Task Name - Status
+    - 2. Task Name - Status
 
     4. 📧 Verify Email:
     - When a user asks to reset password or said forgot password or these type of talking then ask user their email and you directly call the 'verify_email_exists' function with the provided email.
