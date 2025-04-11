@@ -1,10 +1,5 @@
 venv/
-
-# Ignore all files in the credentials folder
-/credentials/*
-# But don't ignore the folder itself
-!/credentials/
-
+/credentials/personal-ai-study-partner-66175870c255.json
 db.sqlite3
 __pycache__/
 *.pyc
