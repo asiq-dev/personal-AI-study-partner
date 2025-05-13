@@ -23,6 +23,4 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/tutor/list/', permanent=False)),
     path('accounts/', include('accounts.urls')),
     path('tutor/', include('dsa_tutor.urls')),
-    path('todo/', include('todo.urls')),
-    path('weather/', include('weather.urls')),
 ]
