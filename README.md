@@ -31,8 +31,19 @@ This project is a Django-based application designed to serve as a personal AI-po
 5. Apply migrations:
     ```bash
     python manage.py migrate
+
+6. Google Sheets Integration (Required Setup):
+    ```bash
+    To enable integration with Google Sheets (e.g., for logging study sessions, syncing content, or storing user progress), you need to manually add a `credentials` folder with Google API credentials.
+    - mkdir credentials
+    # move the credentials.json here
+    Your structure should look like:
+    personal-AI-study-partner/
+    ├── credentials/
+    │   └── credentials.json
+
     ```
-6. Run the development server:
+7. Run the development server:
     ```bash
     python manage.py runserver
     ```

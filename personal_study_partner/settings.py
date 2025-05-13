@@ -40,8 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts.apps.AccountsConfig',
     'dsa_tutor.apps.DsaTutorConfig',
-    'todo.apps.TodoConfig',
-    'weather.apps.WeatherConfig',
 ]
 
 MIDDLEWARE = [
